@@ -287,6 +287,6 @@ The ADC specification is open. Runtimes built on ADC may be open or proprietary.
 
 **R2 Advisory**
 Michael Ruiz, Founder and Managing Director
-[r2advisory.com](https://r2advisory.com)
+[r2advisory.ai](https://r2advisory.ai)
 
-R2 Advisory maintains the ADC specification and the reference enforcement runtime, [Arbiter](https://r2advisory.com/arbiter). ADC is designed to be evaluable by any conformant runtime. Arbiter is never a requirement for ADC adoption.
+R2 Advisory maintains the ADC specification.
