@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/michaelR2A/adc/spec/adc-v0.1.json",
+  "$id": "https://github.com/labs-r2-advisory/adc/spec/adc-v0.1.json",
   "title": "Agent Delegation Contract",
   "description": "ADC v0.1 — Working Draft. Formal specification for what an AI agent is authorized to do: what data it may access, what decisions it may make autonomously, what tools it may invoke, under what conditions, and what escalation conditions route decisions to a human or higher authority.",
   "type": "object",
