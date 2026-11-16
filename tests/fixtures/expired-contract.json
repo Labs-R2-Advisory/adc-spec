@@ -1,0 +1,188 @@
+{
+  "_comment": "Test fixture. Deliberately expired (expires_at 2026-10-16). tests/validate.py must flag it as past expires_at. Timeout values corrected to the schema enum so the fixture is otherwise schema-valid.",
+  "adc_version": "0.1",
+  "contract_id": "urn:adc:example:procurement-agent:2026-04-16:v1",
+
+  "contract_meta": {
+    "issued_at": "2026-04-16T00:00:00Z",
+    "expires_at": "2026-10-16T00:00:00Z",
+    "authored_by": "ciso@example.com",
+    "description": "Governs an AI procurement agent authorized to research vendors, draft purchase requests, and approve routine purchase orders within defined thresholds. Escalates to the CFO for new vendors or orders above threshold.",
+    "labels": {
+      "vertical": "financial-services",
+      "pattern": "enterprise-ai-governance",
+      "environment": "test-fixture"
+    }
+  },
+
+  "agent": {
+    "agent_id": "procurement-agent-001",
+    "agent_type": "task_agent",
+    "agent_version": "1.2.0"
+  },
+
+  "principal": {
+    "principal_id": "cfo@example.com",
+    "principal_type": "human",
+    "delegation_depth": 0
+  },
+
+  "authority": {
+    "data_access": [
+      {
+        "domain": "finance.vendor_registry",
+        "classification_ceiling": "confidential",
+        "operations": ["read", "write"],
+        "conditions": []
+      },
+      {
+        "domain": "finance.purchase_orders",
+        "classification_ceiling": "confidential",
+        "operations": ["read", "write"]
+      },
+      {
+        "domain": "finance.approved_vendor_list",
+        "classification_ceiling": "internal",
+        "operations": ["read"]
+      },
+      {
+        "domain": "finance.budget_allocations",
+        "classification_ceiling": "confidential",
+        "operations": ["read"],
+        "conditions": [
+          {
+            "field": "request.action",
+            "operator": "eq",
+            "value": "read"
+          }
+        ]
+      }
+    ],
+
+    "tools": [
+      {
+        "tool_id": "erp.purchase_order_api",
+        "permitted_actions": ["create_draft", "submit_for_approval", "retrieve_status"],
+        "rate_limit": {
+          "max_calls": 100,
+          "window_seconds": 3600
+        }
+      },
+      {
+        "tool_id": "vendor_intelligence.search_api",
+        "permitted_actions": ["search", "retrieve_profile", "retrieve_risk_score"],
+        "rate_limit": {
+          "max_calls": 500,
+          "window_seconds": 3600
+        }
+      },
+      {
+        "tool_id": "email.send",
+        "permitted_actions": ["send"],
+        "conditions": [
+          {
+            "field": "email.recipient_domain",
+            "operator": "in",
+            "value": ["example.com"]
+          }
+        ]
+      }
+    ],
+
+    "decisions": [
+      {
+        "decision_type": "approve_purchase_order",
+        "autonomous": true,
+        "thresholds": [
+          {
+            "field": "purchase_order.amount_usd",
+            "operator": "lte",
+            "value": 10000
+          },
+          {
+            "field": "purchase_order.vendor_id",
+            "operator": "in",
+            "value": ["{{finance.approved_vendor_list}}"]
+          }
+        ]
+      },
+      {
+        "decision_type": "reject_purchase_request",
+        "autonomous": true,
+        "thresholds": []
+      },
+      {
+        "decision_type": "add_new_vendor",
+        "autonomous": false,
+        "thresholds": []
+      }
+    ],
+
+    "delegation": {
+      "may_delegate": false
+    }
+  },
+
+  "constraints": [
+    {
+      "id": "no-external-email",
+      "description": "Agent may not send email to any recipient outside the example.com domain.",
+      "applies_to": "tool_invocation",
+      "on_violation": "deny_and_escalate"
+    },
+    {
+      "id": "no-financial-system-writes-above-threshold",
+      "description": "Agent may not write to any financial system for transactions exceeding $10,000 without prior human approval.",
+      "applies_to": "data_access",
+      "on_violation": "deny_and_halt"
+    },
+    {
+      "id": "no-competitor-data-access",
+      "description": "Agent may not access any data domain prefixed with 'competitor.*'.",
+      "applies_to": "data_access",
+      "on_violation": "deny_and_escalate"
+    }
+  ],
+
+  "escalation": [
+    {
+      "trigger": "purchase_order.amount_usd > 10000",
+      "escalate_to": "cfo@example.com",
+      "timeout": {
+        "seconds": 86400,
+        "on_timeout": "deny"
+      },
+      "priority": "routine"
+    },
+    {
+      "trigger": "decision_type == 'add_new_vendor'",
+      "escalate_to": "cfo@example.com",
+      "timeout": {
+        "seconds": 172800,
+        "on_timeout": "deny"
+      },
+      "priority": "routine"
+    },
+    {
+      "trigger": "constraint_violation AND constraint.id IN ['no-external-email', 'no-financial-system-writes-above-threshold']",
+      "escalate_to": "ciso@example.com",
+      "timeout": {
+        "seconds": 3600,
+        "on_timeout": "halt"
+      },
+      "priority": "urgent"
+    }
+  ],
+
+  "connectivity": {
+    "assumed_mode": "connected"
+  },
+
+  "binding": {
+    "enforcement_mode": "native",
+    "on_violation": "deny_and_escalate",
+    "on_expiry": "deny_all",
+    "immutable": true,
+    "audit_required": true
+  }
+}
