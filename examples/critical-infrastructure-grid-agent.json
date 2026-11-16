@@ -11,7 +11,7 @@
       "vertical": "critical-infrastructure",
       "pattern": "disconnected-operations",
       "environment": "ot-production",
-      "profile": "working-draft"
+      "profile": "working-draft-experimental"
     }
   },
 
@@ -115,6 +115,8 @@
     }
   },
 
+  "_constraints_comment": "These constraints are prose-only (no rule field). They document intent for human reviewers; a runtime cannot evaluate them as written. See docs/concepts.md section 3.4.",
+
   "constraints": [
     {
       "id": "no-restoration-without-human-approval",
@@ -147,20 +149,22 @@
       "priority": "urgent"
     },
     {
+      "_comment": "v0.1.1: on_timeout changed from approve to deny. If the operations center does not answer within 300 seconds, the agent gains no authority to shed load on its own between 95% and 98% overload. Autonomous shedding at 98% or above remains governed by authority.decisions. ADC expresses authorization only: protective relays, under-frequency load shedding and other independent protection systems remain the safety layer and are not replaced or certified by this contract.",
       "trigger": "grid.overload_percentage >= 95 AND connectivity.mode == 'connected'",
       "escalate_to": "grid-operations-center",
       "timeout": {
         "seconds": 300,
-        "on_timeout": "approve"
+        "on_timeout": "deny"
       },
       "priority": "immediate"
     },
     {
+      "_comment": "v0.1.1: on_timeout changed from deny_and_halt, which the schema does not allow for timeouts, to halt. The action that triggered the violation is already denied by binding.on_violation.",
       "trigger": "constraint_violation",
       "escalate_to": "grid-operations-center",
       "timeout": {
         "seconds": 60,
-        "on_timeout": "deny_and_halt"
+        "on_timeout": "halt"
       },
       "priority": "immediate"
     }

@@ -1,10 +1,11 @@
 {
+  "_comment": "v0.1.1: reissued as v2 with a current validity window (v1 expired 2026-10-16). Under binding.immutable, changed terms require a new contract_id, so the date and version segments changed. Expiry behavior is still tested with tests/fixtures/expired-contract.json.",
   "adc_version": "0.1",
-  "contract_id": "urn:adc:example:procurement-agent:2026-04-16:v1",
+  "contract_id": "urn:adc:example:procurement-agent:2026-11-16:v2",
 
   "contract_meta": {
-    "issued_at": "2026-04-16T00:00:00Z",
-    "expires_at": "2026-10-16T00:00:00Z",
+    "issued_at": "2026-11-16T00:00:00Z",
+    "expires_at": "2027-05-16T00:00:00Z",
     "authored_by": "ciso@example.com",
     "description": "Governs an AI procurement agent authorized to research vendors, draft purchase requests, and approve routine purchase orders within defined thresholds. Escalates to the CFO for new vendors or orders above threshold.",
     "labels": {
@@ -60,6 +61,7 @@
 
     "tools": [
       {
+        "_comment": "v0.1.1 note: authority.decisions authorizes approve_purchase_order, but this tool grants no approve action. That is deliberate and unchanged. A decision grant says what the agent may decide; a tool grant says which calls it may make. Here the agent may reach an approval decision for orders up to $10,000 with approved vendors, and it records that decision by submitting the order through submit_for_approval. The ERP's own approval workflow, outside this contract, carries out the approval. Adding an approve action would broaden the agent's tool authority, so v0.1.1 does not add one. v0.1 does not define how decision types bind to tool actions; that gap is on the RFC backlog.",
         "tool_id": "erp.purchase_order_api",
         "permitted_actions": ["create_draft", "submit_for_approval", "retrieve_status"],
         "rate_limit": {
@@ -122,6 +124,8 @@
     }
   },
 
+  "_constraints_comment": "These constraints are prose-only (no rule field). They document intent for human reviewers; a runtime cannot evaluate them as written. See docs/concepts.md section 3.4.",
+
   "constraints": [
     {
       "id": "no-external-email",
@@ -163,11 +167,12 @@
       "priority": "routine"
     },
     {
+      "_comment": "v0.1.1: on_timeout changed from deny_and_halt, which the schema does not allow for timeouts, to halt. The violating action is already denied by the constraint's on_violation.",
       "trigger": "constraint_violation AND constraint.id IN ['no-external-email', 'no-financial-system-writes-above-threshold']",
       "escalate_to": "ciso@example.com",
       "timeout": {
         "seconds": 3600,
-        "on_timeout": "deny_and_halt"
+        "on_timeout": "halt"
       },
       "priority": "urgent"
     }
