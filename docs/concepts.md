@@ -88,6 +88,8 @@ Principals may be:
 
 Every ADC has exactly one principal. The principal is the answer to: who authorized this agent to act this way?
 
+**Identifiers, not authentication.** `principal_id` and `agent_id` are identifiers. A contract does not authenticate either party and does not prove that the named principal actually issued it. Binding those identifiers to authenticated identities, and proving issuance, is left to existing IAM and to the runtime in v0.1. Identity binding is on the RFC backlog.
+
 ---
 
 ### 3.3 Authority
@@ -100,6 +102,8 @@ Every ADC has exactly one principal. The principal is the answer to: who authori
 
 **The default is deny.** Everything not explicitly permitted in the authority block is denied. Authority is not a description of what the agent might do. It is a complete specification of what it is allowed to do.
 
+**Decisions and tool actions are separate grants.** A `decisions` entry authorizes the agent to reach a decision; a `tools` entry authorizes specific calls. v0.1 does not define how a decision type binds to the tool actions that carry it out, so a contract can authorize a decision without granting any tool action that executes it, or the reverse. Authors should state the intended link, as the procurement example does in a comment. A normative decision-to-action binding is on the RFC backlog.
+
 ---
 
 ### 3.4 Constraint
@@ -109,6 +113,10 @@ A **constraint** is an explicit prohibition that applies across the entire contr
 Constraints answer the question: what is this agent never permitted to do, even if its authority would otherwise allow it?
 
 Example: An agent may have write access to `finance.purchase_orders` in its authority block, but a constraint may prohibit any write operation that would result in a transaction exceeding $10,000 without human approval. The constraint governs regardless of the permission.
+
+**Prose constraints are not machine-enforceable.** In v0.1, `rule` is optional and its syntax is runtime-defined. A constraint with only a `description` is schema-valid, but a runtime cannot evaluate it, so it documents intent for human reviewers rather than enforcing anything. Both example contracts in this repository use prose-only constraints for this reason.
+
+*Proposed for a future version (RFC backlog, not a v0.1 requirement):* a runtime that cannot evaluate a constraint, because the rule is absent, unparseable or references unavailable context, treats the constraint as violated and fails closed. v0.1 does not require this, and no reference runtime implements it.
 
 ---
 
@@ -129,6 +137,8 @@ L3: Sub-task Agent  (delegated by L2, if L2 ADC permits delegation)
 
 An agent may only delegate if its ADC explicitly sets `authority.delegation.may_delegate: true`. Delegation depth is bounded by `authority.delegation.max_delegation_depth`.
 
+**The subset invariant is not machine-checked.** JSON Schema validates one contract at a time, so it cannot verify that a child contract's authority is a subset of its parent's. In v0.1 the invariant is a requirement on the issuing party and the runtime, not something schema validation proves. A normative attenuation check is on the RFC backlog.
+
 ---
 
 ### 3.6 Escalation
@@ -143,7 +153,9 @@ An escalation rule defines:
 
 Escalation is not an error state. It is a designed-in control path for decisions that exceed the agent's autonomous authority or that the contract explicitly reserves for human judgment.
 
-**Timeout behavior is explicit, not a system default.** Each escalation rule declares its own `on_timeout` action. `deny` is the safe default for high-risk decisions. `approve` may be appropriate for low-risk notifications where inaction is the correct response to non-engagement.
+**Timeout behavior is explicit, not a system default.** Each escalation rule declares its own `on_timeout` action: `deny`, `approve`, `escalate_further` or `halt`. `deny` is the safe default for high-risk decisions. `approve` may be appropriate only for low-risk notifications where inaction is the correct response to non-engagement; it should not be used where an unreviewed decision could cause harm.
+
+**Triggers are free text.** In v0.1 the `trigger` field is a string with no normative grammar. Trigger expressions in the examples are conventions for readability; a runtime must define how it parses them. A normative trigger grammar is on the RFC backlog.
 
 ---
 
@@ -155,9 +167,13 @@ Escalation is not an error state. It is a designed-in control path for decisions
 |---|---|---|
 | `native` | Agent is ADC-aware, self-governs, and calls the evaluation runtime for decisions | ADC-native agents, planning agents, mature integrations |
 | `overseer` | An overseer agent validates sub-agent outputs against the ADC before propagation | Bridge pattern for non-ADC-aware agents |
-| `infrastructure` | Contract is enforced at the infrastructure boundary regardless of agent awareness | Data protection enforcement, network-path interception |
+| `infrastructure` | Contract is intended to be enforced at the infrastructure boundary regardless of agent awareness | Data protection enforcement, network-path interception |
 
 Agent ADC awareness improves operational efficiency and enables graceful constraint handling. It is not required for enforcement. Infrastructure-mode enforcement operates regardless of whether the agent knows its ADC exists.
+
+`binding.enforcement_mode` declares where enforcement is expected to happen. It does not make enforcement happen; that depends on a runtime that implements the declared mode.
+
+**Audit is a requirement, not an evidence format.** `binding.audit_required: true` states that every evaluation event must be recorded. v0.1 does not define what an audit record contains, how it is protected against tampering, or how it is exported. Tamper evidence and non-repudiation depend on the runtime. An audit receipt format is on the RFC backlog.
 
 ---
 
@@ -178,7 +194,7 @@ For enterprise deployments operating in fully connected environments, the `conne
 
 ### 3.9 Pre-Authorization Envelope
 
-A **pre-authorization envelope** is the bounded set of decisions an agent is cleared to make autonomously when it cannot reach the evaluation runtime. The envelope is defined at contract issuance, validated against the contract's authority block, and cryptographically signed.
+A **pre-authorization envelope** is the bounded set of decisions an agent is cleared to make autonomously when it cannot reach the evaluation runtime. The envelope is defined at contract issuance and is intended to be validated against the contract's authority block and cryptographically signed. v0.1 defines neither the validation procedure nor a signing scheme, so the envelope is experimental.
 
 The envelope answers: if this agent loses contact with its authoritative runtime, exactly which decisions may it continue to make, for how long, and what must it do when contact is restored?
 
@@ -205,7 +221,7 @@ The evaluation runtime sits in the infrastructure path. Agent action requests ar
 
 ## 5. Domain Applicability
 
-ADC is designed for any environment where autonomous agents make consequential decisions. The specification defines a core that is domain-invariant. Normative profiles for specific operational contexts are maintained as extensions to the core.
+ADC is designed for any environment where autonomous agents make consequential decisions. The specification defines a core that is domain-invariant. Domain profiles for specific operational contexts are maintained as extensions to the core; all are working drafts in v0.1.
 
 | Domain | Connectivity Profile | Key ADC Features |
 |---|---|---|
@@ -221,10 +237,22 @@ Profiles for Critical Infrastructure and Defense/National Security are open for 
 
 ## 6. What ADC Does Not Define
 
-ADC defines the contract language and enforcement semantics. The following are explicitly out of scope for the specification:
+ADC defines the contract language and its intended enforcement semantics. The following are explicitly out of scope for the specification:
 
 - **Runtime implementation**: How a runtime evaluates ADCs (OPA, custom engine, embedded logic) is implementation-defined.
 - **Agent communication protocols**: How agents communicate with each other or with runtimes is not specified by ADC.
 - **Interface channels for escalation**: How a human node receives an escalation (email, UI, messaging) is an implementation detail of the runtime.
 - **Cryptographic signing schemes**: The spec notes where signatures are relevant but does not mandate a specific scheme.
 - **Agent capability definitions**: ADC governs what an agent is authorized to do, not what it is capable of doing.
+- **Safety functions**: ADC expresses authorization. It is not a safety system and does not replace protective relays, safety instrumented systems, interlocks or other independent safety layers in OT/ICS or physical environments.
+
+---
+
+## 7. v0.1 Maturity
+
+v0.1 is a working draft. As of v0.1.1:
+
+- The JSON Schema validates contract structure. Schema validity does not mean a contract is enforceable, in force (expiry is not checked), or safe.
+- No reference runtime or conformance test suite exists. Runtime behavior described in these documents is the intended semantics, not tested behavior.
+- The disconnected-operations profile and the pre-authorization envelope are experimental.
+- ADC has not been adopted or endorsed by any standards body.

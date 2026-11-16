@@ -177,7 +177,7 @@ Omit this block for fully connected enterprise deployments. Required for OT/ICS,
 |---|---|
 | `native` | Agent is ADC-aware, self-governs, and calls the evaluation runtime to validate decisions. |
 | `overseer` | An overseer agent validates sub-agent outputs against this contract before propagation. |
-| `infrastructure` | Contract is enforced at the infrastructure boundary regardless of agent awareness. |
+| `infrastructure` | Contract is intended to be enforced at the infrastructure boundary regardless of agent awareness, by a runtime that implements this mode. |
 
 ---
 

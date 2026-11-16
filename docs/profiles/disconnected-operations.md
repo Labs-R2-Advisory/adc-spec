@@ -1,6 +1,6 @@
 # Profile: Disconnected Operations
 
-**Status:** Working Draft
+**Status:** Working Draft (experimental)
 **Domain:** Autonomous agents operating in degraded, disconnected, or contested connectivity environments
 **Applies to:** OT/ICS environments, defense and national security, remote field operations, critical infrastructure
 
@@ -9,6 +9,8 @@
 ## Status Note
 
 This profile is a working draft. The normative specification for pre-authorization envelope evaluation, cryptographic signing requirements, and state reconciliation on reconnection is in progress. Fields marked **[WORKING DRAFT]** have defined schema and semantics but normative evaluation requirements are not yet locked.
+
+**Experimental. Not a safety certification.** v0.1 defines no signing scheme, no envelope integrity check and no reconciliation protocol, so nothing in this profile can be relied on as a verified control. A contract conforming to this profile has not been validated for safety in any OT/ICS environment. ADC expresses authorization: what an agent is permitted to decide. It does not replace protective relays, safety instrumented systems, interlocks or any other independent safety function, and it must not be used as one.
 
 Community contributions to this profile are explicitly invited. See `CONTRIBUTING.md` and RFC-0002 (forthcoming).
 
@@ -39,7 +41,7 @@ This profile defines normative behavior for all four connectivity states:
 
 **[WORKING DRAFT]**
 
-The pre-authorization envelope is the bounded set of decisions an agent is cleared to execute autonomously when disconnected. It is defined at contract issuance, validated as a strict subset of the contract's `authority` block, and cryptographically signed by the issuing runtime.
+The pre-authorization envelope is the bounded set of decisions an agent is cleared to execute autonomously when disconnected. It is defined at contract issuance and is intended to be validated as a strict subset of the contract's `authority` block and cryptographically signed by the issuing runtime. v0.1 specifies neither the subset check nor the signing scheme; both are open questions below.
 
 ### Design Principles
 

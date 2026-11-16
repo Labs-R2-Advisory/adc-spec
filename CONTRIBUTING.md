@@ -50,8 +50,8 @@ ADC profiles extend the core spec for specific operational domains. The followin
 
 | Profile | Status | RFC |
 |---|---|---|
-| `enterprise-ai-governance` | Normative (v0.1) | N/A |
-| `disconnected-operations` | Working Draft | [RFC-0002](docs/rfcs/RFC-0002-disconnected-operations.md) (forthcoming) |
+| `enterprise-ai-governance` | Working Draft (v0.1) | N/A |
+| `disconnected-operations` | Working Draft (experimental) | RFC-0002 (forthcoming; not yet published) |
 | `critical-infrastructure` | Placeholder | Open — start here |
 | `defense-national-security` | Placeholder | Open — start here |
 | `autonomous-field-operations` | Placeholder | Open — start here |

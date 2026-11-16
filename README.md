@@ -2,7 +2,7 @@
 
 **Open specification for AI agent authorization — define what agents may do, decide, and escalate.**
 
-`v0.1 Working Draft` | Apache 2.0 | R2 Advisory
+`v0.1 Working Draft` (documentation release v0.1.1) | Apache 2.0 | R2 Advisory
 
 ---
 
@@ -17,6 +17,8 @@ An **Agent Delegation Contract** is a formal, machine-readable contract that def
 - What **authority** the agent retains when it cannot reach its evaluation runtime
 
 ADC is a **specification**, not an implementation. Any runtime may evaluate ADCs. The language is open. Runtimes are built on top of it.
+
+**Maturity.** v0.1 is a working draft. The JSON Schema validates contract structure; no reference runtime or conformance test suite exists yet, and ADC has not been adopted by any standards body. See [Maturity and Limits](#maturity-and-limits).
 
 ---
 
@@ -56,12 +58,12 @@ Key concepts from that work that directly shape ADC:
 | Concept (Tomasev et al.) | ADC Implementation |
 |---|---|
 | Principal-agent problem: misaligned incentives between delegator and delegatee | `principal` block: explicit accountability ownership; authority is scoped, not presumed |
-| Span of control: limits on how many agents a delegator can supervise reliably | `authority.delegation.max_delegation_depth`: bounded delegation chains; runtime span-of-control enforcement |
+| Span of control: limits on how many agents a delegator can supervise reliably | `authority.delegation.max_delegation_depth`: bounded delegation chains; span-of-control limits for a runtime to enforce |
 | Authority gradient: capability/authority disparities that impede communication and cause errors | `agent.agent_type` classification + `constraints` block: challenge rights, clarification triggers, sycophancy mitigation |
 | Zone of indifference: range of instructions executed without critical scrutiny | `constraints` as hard overrides; `escalation` conditions that fire before zone-of-indifference compliance |
 | Permission handling via privilege attenuation: sub-delegatees receive strict subsets only | Delegation invariant: authority can only be constrained downward, never amplified |
 | Trust calibration: trust is contextual, not global; must be earned per task class | `binding.enforcement_mode` + audit trail: trust is evaluated per contract instance, not per agent globally |
-| Verifiable task completion: outcomes must be formally closeable, not assumed | `binding.audit_required` + immutable contract IDs: every evaluation event creates a non-repudiable record |
+| Verifiable task completion: outcomes must be formally closeable, not assumed | `binding.audit_required` + immutable contract IDs: every evaluation event must be recorded against a fixed contract version (record format and tamper evidence are runtime-defined in v0.1) |
 | Adaptive coordination: static execution plans are insufficient for high-uncertainty environments | `escalation` with `on_timeout` behavior + `connectivity` model: defined fallback for every failure mode |
 
 ---
@@ -99,22 +101,22 @@ Key threat patterns from OWASP GenAI that ADC directly addresses:
 | Agents accessing data beyond task scope | `authority.data_access[].domain` with explicit classification ceiling and permitted operations per domain |
 | Absence of authorization model for MCP tool invocations | `authority.tools[].permitted_actions`: explicit allowlist of permitted operations per tool, not binary access |
 | Agent identity is ephemeral; audit trail is operationally infeasible at AI event volume | `binding.audit_required` + immutable `contract_id`: every evaluation event captures agent identity, contract version, and decision |
-| Indirect prompt injection enabling agents to exceed authorized scope | `constraints` block as hard overrides evaluated before authority; `on_violation: deny_and_halt` for critical constraints |
+| Indirect prompt injection enabling agents to exceed authorized scope | `constraints` block as hard overrides evaluated before authority; `on_violation: deny_and_halt` for critical constraints (requires a machine-evaluable `rule`) |
 | Sub-agent authority inheritance: spawned agents inherit more access than the task requires | Delegation invariant: authority is constrained downward at every level; `agent.parent_contract_id` links lineage |
-| Data access leaving an unmanageable audit trail at AI event velocity | `binding.audit_required` + SIEM-compatible JSON Lines export: structured audit at enforcement-layer rather than log-review layer |
-| Retrieval-augmented agents accessing high-classification data without policy gates | `data_access[].classification_ceiling`: hard ceiling per domain enforced at contract evaluation time |
+| Data access leaving an unmanageable audit trail at AI event velocity | `binding.audit_required`: audit at the enforcement layer rather than the log-review layer (an export format, such as JSON Lines for SIEM ingestion, is proposed but not specified in v0.1) |
+| Retrieval-augmented agents accessing high-classification data without policy gates | `data_access[].classification_ceiling`: hard ceiling per domain, intended to be enforced at contract evaluation time by a runtime that implements ADC |
 
-OWASP GenAI establishes the threat model. ADC provides the contract language for expressing and enforcing mitigations at the agent authorization layer, upstream of where existing DLP, DSPM, and IAM controls operate.
+OWASP GenAI establishes the threat model. ADC provides the contract language for expressing mitigations at the agent authorization layer, upstream of where existing DLP, DSPM, and IAM controls operate. Enforcement depends on a runtime that evaluates the contract; v0.1 has no reference runtime.
 
 ---
 
 ## Scope
 
-ADC is designed for any environment where autonomous agents make consequential decisions. The specification defines a **domain-invariant core** with **normative profiles** for specific operational contexts.
+ADC is designed for any environment where autonomous agents make consequential decisions. The specification defines a **domain-invariant core** with **domain profiles** for specific operational contexts. All profiles are working drafts in v0.1.
 
 | Domain | Profile Status |
 |---|---|
-| Enterprise AI Governance | Normative (v0.1) |
+| Enterprise AI Governance | Working Draft (v0.1); requirements stable, conformance criteria pending |
 | Critical Infrastructure (OT/ICS) | Working Draft — contributors needed |
 | Defense / National Security | Working Draft — contributors needed |
 | Autonomous Field Operations | Placeholder — RFC open |
@@ -132,10 +134,13 @@ examples/
   critical-infrastructure-grid-agent.json  # Disconnected/OT operations pattern
 docs/
   concepts.md            # Primitives, design rationale, consumption patterns
-  field-reference.md     # Field-by-field reference (forthcoming)
-  authoring-guide.md     # How to write an ADC (forthcoming)
-  profiles/              # Domain-specific normative profiles (forthcoming)
+  field-reference.md     # Field-by-field reference
+  authoring-guide.md     # How to write an ADC
+  profiles/              # Domain profiles (all working drafts; disconnected experimental)
   rfcs/                  # RFC archive
+tests/
+  validate.py            # Schema, example, snippet, negative and link checks
+  fixtures/              # Deliberately invalid or expired test contracts
 CONTRIBUTING.md          # How to contribute
 CHANGELOG.md             # Version history
 LICENSE                  # Apache 2.0
@@ -218,7 +223,7 @@ The agent reads its ADC, self-governs, and calls the evaluation runtime to valid
 Sub-agents execute without ADC awareness. An overseer agent validates outputs against the governing ADC before propagation. Bridge pattern for non-ADC-native agents.
 
 **Pattern 3 — Infrastructure Enforcement**
-The evaluation runtime intercepts agent actions at the infrastructure boundary. Enforcement operates regardless of agent awareness.
+The evaluation runtime intercepts agent actions at the infrastructure boundary. A runtime implementing this pattern enforces the contract regardless of agent awareness.
 
 ---
 
@@ -233,6 +238,29 @@ ADC specifies agent authority behavior under four connectivity states. Enterpris
 | `disconnected` | Pre-authorization envelope governs; deny on ambiguity |
 | `contested` | Minimal safe actions only; halt and report on reconnect |
 
+The disconnected and contested semantics are **experimental** in v0.1. They are not an OT safety certification and do not replace independent safety systems.
+
+---
+
+## Maturity and Limits
+
+What v0.1 is, and what it is not yet:
+
+| Area | v0.1 status |
+|---|---|
+| Schema | JSON Schema Draft 2020-12; validates contract structure |
+| Enforcement | No reference runtime. Runtime behavior in these docs is intended semantics, not tested behavior |
+| Constraints | `rule` is optional and runtime-defined; prose-only constraints are valid but not machine-enforceable |
+| Escalation triggers | Free-text strings; no normative grammar |
+| Delegation | Child-is-subset-of-parent is required but not machine-verified by the schema |
+| Identity | `agent_id` and `principal_id` are identifiers, not authenticated identities or proof of issuance |
+| Audit | `audit_required` states a requirement; record format, tamper evidence and export are not specified |
+| Disconnected operations | Experimental; no signing scheme, TTL verification or ratification protocol defined |
+| Unknown fields | Accepted by the schema (no `additionalProperties: false`) |
+| Conformance | No conformance suite; no standards body adoption |
+
+Run `python3 tests/validate.py` to validate the examples and documentation snippets against the schema. Proposed work on these limits follows the RFC process in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ---
 
 ## Relationship to Existing Standards
@@ -240,7 +268,7 @@ ADC specifies agent authority behavior under four connectivity states. Enterpris
 ADC is complementary to, not a replacement for:
 
 - **NIST AI RMF**: ADC provides the machine-readable contract layer for operationalizing AI RMF governance controls at the agent level
-- **EU AI Act**: ADC contract terms can express and enforce AI Act obligations (human oversight, prohibited practices) at the agent authorization layer
+- **EU AI Act**: ADC contract terms can express AI Act obligations (human oversight, prohibited practices) at the agent authorization layer, for a runtime to enforce
 - **ISO 42001**: ADC supports AI management system controls by formalizing agent authorization as auditable policy
 - **OpenAPI / AsyncAPI**: ADC governs what an agent is authorized to do with APIs it can invoke; it does not describe the APIs themselves
 - **SAML / OAuth**: ADC extends identity and access concepts to agent-level decision authorization; it assumes identity is established by existing IAM
@@ -267,7 +295,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the RFC process, issue labels, and 
 | Version | Status | Date |
 |---|---|---|
 | v0.1 | Working Draft | April 2026 |
-| v1.0 | Target: Q4 2026 | — |
+| v0.1.1 | Working Draft, documentation and example consistency release (schema unchanged) | November 2026 |
+| v1.0 | Under review; set after the RFC backlog is triaged | TBD |
 
 v0.1 is a working draft. Fields marked `WORKING DRAFT` in the schema have defined semantics but normative evaluation requirements are in progress. Schema changes are possible before v1.0. v1.0 will be the first locked release.
 

@@ -32,7 +32,7 @@ Every ADC needs a globally unique, immutable identifier and a version reference.
 ```json
 {
   "adc_version": "0.1",
-  "contract_id": "urn:adc:{your-org}:{agent-name}:{date}:{version}"
+  "contract_id": "urn:adc:yourorg:cx-support-agent:2026-04-16:v1"
 }
 ```
 
@@ -284,7 +284,7 @@ Escalation is not an error state. It is a designed control path for decisions th
     "escalate_to": "security-ops@yourorg.com",
     "timeout": {
       "seconds": 1800,
-      "on_timeout": "deny_and_halt"
+      "on_timeout": "halt"
     },
     "priority": "immediate"
   }
@@ -292,6 +292,10 @@ Escalation is not an error state. It is a designed control path for decisions th
 ```
 
 **Every escalation rule must specify `on_timeout`.** There is no system default. `deny` is the safe default for most cases. `approve` is appropriate only when the action is low-risk and inaction is the correct response to non-engagement. `halt` is appropriate when continued operation pending a response is unsafe.
+
+The `on_timeout` values are `deny`, `approve`, `escalate_further` and `halt`. `deny_and_halt` and `deny_and_escalate` are `on_violation` values only; they are not valid timeout actions in v0.1. For a constraint-violation escalation, the violating action is already denied by `on_violation`, so `halt` expresses "stop if nobody answers."
+
+**Triggers are free text in v0.1.** The `trigger` field has no normative grammar. Expressions such as `refund.amount_usd > 50` are readable conventions, not a defined language, and two runtimes may interpret the same string differently. A normative trigger grammar is on the RFC backlog.
 
 ---
 
@@ -310,7 +314,7 @@ Escalation is not an error state. It is a designed control path for decisions th
 **Choose `enforcement_mode`:**
 - `native`: the agent reads its ADC, self-governs, and calls the runtime for validation. Use when the agent is ADC-aware.
 - `overseer`: an overseer agent validates outputs before propagation. Use as a bridge for agents that are not ADC-aware.
-- `infrastructure`: the runtime intercepts actions at the infrastructure boundary. Use for Arbiter-DP style deployment or when agent awareness cannot be assumed.
+- `infrastructure`: the runtime intercepts actions at the infrastructure boundary. Use for data-path or gateway enforcement, or when agent awareness cannot be assumed.
 
 Do not set `audit_required: false` in production. The audit log is the foundation of accountability.
 
@@ -375,3 +379,11 @@ print('Valid')
 ```
 
 Schema validation confirms structure. It does not validate that your authority scope is appropriate, that your escalation targets are reachable, or that your constraints are sufficient. Those are authoring decisions that require human review.
+
+Three v0.1 limits to keep in mind when reading a "Valid" result:
+
+- **Valid is not enforceable.** A constraint with only a `description` and no `rule` is schema-valid, but no runtime can evaluate it as written. Add a `rule` in your runtime's syntax for any constraint you expect a machine to enforce.
+- **Unknown fields pass.** The v0.1 schema does not set `additionalProperties: false`, so a misspelled field such as `decisons` is accepted and silently ignored. Check field names against `docs/field-reference.md`.
+- **Valid is not in force.** Schema validation does not check `expires_at` against the current time. An expired contract still validates.
+
+To check this repository's own examples and documentation snippets, run `python3 tests/validate.py`.
