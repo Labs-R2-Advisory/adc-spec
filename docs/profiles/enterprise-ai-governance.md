@@ -1,14 +1,16 @@
 # Profile: Enterprise AI Governance
 
-**Status:** Normative (v0.1)
+**Status:** Working Draft (v0.1)
 **Domain:** Enterprise AI agents operating in connected organizational environments
 **Applies to:** Financial services, healthcare, technology, professional services, government
+
+This profile was published as "Normative (v0.1)" and is relabeled Working Draft in v0.1.1. The requirements below are the intended conformance requirements for this profile and have not changed. The profile becomes normative once ADC defines normative evaluation semantics and conformance criteria (RFC backlog). No conformance test suite, certified runtime or independent standardization exists yet.
 
 ---
 
 ## Scope
 
-This profile defines normative ADC usage for AI agents deployed in enterprise environments with reliable connectivity to an evaluation runtime. It covers the common patterns for authorization governance across LLM assistants, task agents, planning agents, and data agents operating against enterprise systems.
+This profile defines intended ADC usage for AI agents deployed in enterprise environments with reliable connectivity to an evaluation runtime. It covers the common patterns for authorization governance across LLM assistants, task agents, planning agents, and data agents operating against enterprise systems.
 
 ---
 
@@ -102,7 +104,7 @@ All enterprise ADCs should route constraint violations to a security contact:
 {
   "trigger": "constraint_violation",
   "escalate_to": "security-ops@yourorg.com",
-  "timeout": { "seconds": 3600, "on_timeout": "deny_and_halt" },
+  "timeout": { "seconds": 3600, "on_timeout": "halt" },
   "priority": "immediate"
 }
 ```
@@ -122,17 +124,17 @@ Route decisions involving new or unvetted entities to a human:
 
 ## Regulatory Alignment
 
-ADC contracts conforming to this profile provide the authorization contract layer for the following frameworks:
+ADC contracts conforming to this profile can express authorization policy that supports the following frameworks. Expressing a control in a contract is not the same as implementing it: the runtime that evaluates the contract, and the organization operating it, carry the implementation. This mapping is the maintainer's view and has not been reviewed or endorsed by any of the bodies named.
 
 | Framework | ADC Alignment |
 |---|---|
-| NIST AI RMF | `authority` + `constraints` implement GOVERN and MANAGE controls at the agent level; `binding.audit_required` supports MEASURE |
-| EU AI Act (human oversight obligations) | `escalation` conditions implement mandatory human oversight for high-risk AI decisions |
-| ISO 42001 | ADC contracts are the auditable policy artifacts for AI management system controls |
-| OWASP GenAI Data Security 2026 | `authority.data_access` + `constraints` implement data access controls addressing OWASP agent data security risks |
+| NIST AI RMF | `authority` + `constraints` can express agent-level policy supporting GOVERN and MANAGE; `binding.audit_required` can support MEASURE |
+| EU AI Act (human oversight obligations) | `escalation` conditions can express where human oversight is required for high-risk AI decisions |
+| ISO 42001 | ADC contracts can serve as auditable policy artifacts for AI management system controls |
+| OWASP GenAI Data Security 2026 | `authority.data_access` + `constraints` can express data access controls addressing OWASP agent data security risks |
 
 ---
 
 ## Example
 
-See `examples/enterprise-procurement-agent.json` for a complete normative example conforming to this profile.
+See `examples/enterprise-procurement-agent.json` for a complete example that meets the requirements of this profile.

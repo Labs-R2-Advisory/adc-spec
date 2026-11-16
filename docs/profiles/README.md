@@ -1,6 +1,6 @@
 # ADC Domain Profiles
 
-Domain profiles extend the ADC core specification for specific operational contexts. A profile defines normative field usage, required constraints, recommended escalation patterns, and example ADCs for a specific deployment domain.
+Domain profiles extend the ADC core specification for specific operational contexts. A profile defines required field usage, required constraints, recommended escalation patterns, and example ADCs for a specific deployment domain.
 
 The core ADC schema is domain-invariant. Profiles are how domain-specific requirements are expressed without modifying the core.
 
@@ -10,7 +10,7 @@ The core ADC schema is domain-invariant. Profiles are how domain-specific requir
 
 | Profile | File | Status | RFC |
 |---|---|---|---|
-| Enterprise AI Governance | `enterprise-ai-governance.md` | Normative (v0.1) | N/A |
+| Enterprise AI Governance | `enterprise-ai-governance.md` | Working Draft (v0.1) | N/A |
 | Disconnected Operations | `disconnected-operations.md` | Working Draft | RFC-0002 (forthcoming) |
 | Critical Infrastructure | — | Placeholder | Open — see CONTRIBUTING.md |
 | Defense / National Security | — | Placeholder | Open — see CONTRIBUTING.md |
